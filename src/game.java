@@ -17,6 +17,9 @@ public class game {
     Action leftMovement;
     Action rightMovement;
 
+    final int MAP_SIZE = 400;
+    final int NUM_TILES = 20;
+    Timer timer;
     int movementDirection = 0;
 
     JLabel foodTile;
@@ -28,22 +31,19 @@ public class game {
     int parts = 0; //Number of body parts, used for the addBodyPart function
     game() {
 
-
-
-
         frame = new JFrame("Snake game");
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-        frame.getContentPane().setPreferredSize(new Dimension(400,400));
+        frame.getContentPane().setPreferredSize(new Dimension(MAP_SIZE,MAP_SIZE));
         frame.pack();
         frame.setLayout(null);
         frame.setLocationRelativeTo(null);
 
         foodTile = new JLabel();
-        foodTile.setBackground(Color.BLACK);
+        foodTile.setBackground(Color.RED);
         foodTile.setOpaque(true);
-        foodTile.setBounds(200,200,20,20);
+        foodTile.setBounds(MAP_SIZE/2,MAP_SIZE/2,MAP_SIZE/NUM_TILES,MAP_SIZE/NUM_TILES);
 
-        body.add(new snakeBody(0,0)); //Creates the "head" of the snake
+        body.add(new snakeBody(0,0,MAP_SIZE/NUM_TILES, MAP_SIZE/NUM_TILES)); //Creates the "head" of the snake
         upMovement = new UpMovement();
         downMovement = new DownMovement();
         leftMovement = new LeftMovement();
@@ -58,15 +58,16 @@ public class game {
         body.get(0).getActionMap().put("rightMovement", rightMovement);
 
         //Keybindings for the movement, up down left and right
+        frame.getContentPane().setBackground(Color.black);
         frame.add(foodTile);
         frame.add(body.get(0));
         frame.setVisible(true);
 
-        Timer timer = new Timer();
+        timer = new Timer();
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
-                moveSnake(movementDirection, 20);
+                moveSnake(movementDirection, MAP_SIZE/NUM_TILES);
             }
         }, 0, 100);
     }
@@ -77,7 +78,7 @@ public class game {
     public class UpMovement extends AbstractAction {
         @Override
         public void actionPerformed(ActionEvent e) {
-            if(movementDirection != 2 || body.size() == 1) {
+            if(movementDirection != 2 || body.size() == 1) { //Can't change directions on a time, unless the size is 0
                 movementDirection =1;
             }
 
@@ -113,24 +114,28 @@ public class game {
                     // both defaulted to zero
         //1 = up, 2 = down, 3 = left, 4 = right for int a
         if(a < 3) {
-            y = 20;  //if a = 1 or 2 then it means vertical
+            y = MAP_SIZE/NUM_TILES;  //if a = 1 or 2 then it means vertical
             if(a == 1) { //1 means upwards movement
                 y = -y;
             }
         }
         if(a > 2) {
-            x = -20;//if a = 3 or 4 then it means horizontal movement
+            x = -MAP_SIZE/NUM_TILES;//if a = 3 or 4 then it means horizontal movement
             if(a == 3) { //3 means left movement
                 x = -x;
             }
         }
 
-        body.add(new snakeBody(body.get(body.size()-1).getX() + x , body.get(body.size()-1).getY() + y));
+        body.add(new snakeBody(body.get(body.size()-1).getX() + x , body.get(body.size()-1).getY() + y, MAP_SIZE/NUM_TILES, MAP_SIZE/NUM_TILES));
         parts++;
         frame.add(body.get(parts));
     }
     public boolean checkIfSameTile(snakeBody labelCheck){
-        return labelCheck.getX() == 200 && labelCheck.getY() == 200; //This is just for testing to see if the body part movements work, at 200,200 it counts as an "apple" or food source like the original game
+        if(labelCheck.getX() == foodTile.getX() && labelCheck.getY() == foodTile.getY()) { //Method checks to see if the food is in the same location as the snake head, if it is, then move the food to random spot
+            moveFood(); //returns true which would increase snake size
+            return true;
+        }
+        return false;
     }
     public void moveSnake(int direction, int distance) {
         //1 = up, 2 = down, 3 = left, 4 = right
@@ -147,6 +152,9 @@ public class game {
                 y = -y;
             }
         }
+        if(checkIfDead(body.get(0).getX() + x, body.get(0).getY() + y)) {
+            return;
+        }
         //this for loop moves each body part relative to where the part ahead of it (in the ArrayList) was previously, and goes all the way up to the 0th index
         if(body.size() > 1) {
             for (int i = body.size() -1; i > 0; i--) {
@@ -158,16 +166,44 @@ public class game {
             body.get(0).setCoordinates(x,y);
         if(checkIfSameTile(body.get(0))) {
             addBodyPart(direction);
-
         }
+        checkIfDead(body.get(0));
     }
+    public void moveFood() {
+        int randX = (int)(Math.random()*MAP_SIZE/NUM_TILES)*MAP_SIZE/NUM_TILES;
+        int randY = (int)(Math.random()*MAP_SIZE/NUM_TILES)*MAP_SIZE/NUM_TILES;
+        foodTile.setLocation(randX,randY);
+    }
+    public boolean checkIfDead(snakeBody head) {
+        if(body.size() > 1) {
+            for (int i = 1; i < body.size(); i++) {
+                if (head.getX() == body.get(i).getX() && head.getY() == body.get(i).getY()) {
+                    timer.cancel();
+                    return true;
+                }
+            }
+        }
+        if(head.getX() < 0 || head.getX() >= MAP_SIZE || head.getY() < 0 || head.getY() >= MAP_SIZE) {
+            timer.cancel();
+            return true;
+        }
+        return false;
+    }
+    public boolean checkIfDead(int x, int y) {
+        if(x < 0 ||x >= MAP_SIZE || y < 0 || y >= MAP_SIZE) {
+            timer.cancel();
+            return true;
+        }
+        return false;
+    }
+
 }
 
 
 class snakeBody extends JLabel{ //Again, each snake part is a JLabel, with coordinates attached to it under this class
-    snakeBody(int x, int y) {
+    snakeBody(int x, int y, int a, int b) {
         this.setBackground(Color.GREEN);
-        this.setBounds(x, y, 20, 20);
+        this.setBounds(x, y, a, b);
         this.setOpaque(true);
     }
     public void setCoordinates(int x, int y) { //this is just for the head of the snake, to move it relative to the direction pressed
