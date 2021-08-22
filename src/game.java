@@ -2,6 +2,8 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.util.ArrayList;
+import java.util.TimerTask;
+import java.util.Timer;
 
 //SNAKE GAME
 //CURRENTLY THE ONLY WORKING FUNCTION IS ADDING BODY PARTS
@@ -15,6 +17,9 @@ public class game {
     Action leftMovement;
     Action rightMovement;
 
+    int movementDirection = 0;
+
+    JLabel foodTile;
     //I decided to do AbstractAction instead of ActionListener for movements.
     //I don't remember why I chose that honestly
 
@@ -22,6 +27,10 @@ public class game {
 
     int parts = 0; //Number of body parts, used for the addBodyPart function
     game() {
+
+
+
+
         frame = new JFrame("Snake game");
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         frame.getContentPane().setPreferredSize(new Dimension(400,400));
@@ -29,6 +38,10 @@ public class game {
         frame.setLayout(null);
         frame.setLocationRelativeTo(null);
 
+        foodTile = new JLabel();
+        foodTile.setBackground(Color.BLACK);
+        foodTile.setOpaque(true);
+        foodTile.setBounds(200,200,20,20);
 
         body.add(new snakeBody(0,0)); //Creates the "head" of the snake
         upMovement = new UpMovement();
@@ -45,63 +58,52 @@ public class game {
         body.get(0).getActionMap().put("rightMovement", rightMovement);
 
         //Keybindings for the movement, up down left and right
-
+        frame.add(foodTile);
         frame.add(body.get(0));
         frame.setVisible(true);
+
+        Timer timer = new Timer();
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                moveSnake(movementDirection, 20);
+            }
+        }, 0, 100);
     }
+    
 
     //All of these are just keybindings for movement, and are identical otherwise
     //Optimization very possible, but I wanna get this to work
     public class UpMovement extends AbstractAction {
         @Override
         public void actionPerformed(ActionEvent e) {
-            moveSnake(1, 20);
-            System.out.println(body.get(0).getX() + " " + body.get(0).getY());
-            if(checkIfSameTile(body.get(0))) {
-                body.get(0).setBackground(Color.RED);
-                addBodyPart(1);
-
-            }else {
-                body.get(0).setBackground(Color.GREEN);
+            if(movementDirection != 2 || body.size() == 1) {
+                movementDirection =1;
             }
+
         }
     }
     public class DownMovement extends AbstractAction {
         @Override
         public void actionPerformed(ActionEvent e) {
-            moveSnake(2, 20);
-            System.out.println(body.get(0).getX() + " " + body.get(0).getY());
-            if(checkIfSameTile(body.get(0))) {
-                body.get(0).setBackground(Color.RED);
-                addBodyPart(2);
-            } else {
-                body.get(0).setBackground(Color.GREEN);
+            if(movementDirection != 1 || body.size() == 1) {
+                movementDirection =2;
             }
         }
     }
     public class LeftMovement extends AbstractAction {
         @Override
         public void actionPerformed(ActionEvent e) {
-            moveSnake(3, 20);
-            System.out.println(body.get(0).getX() + " " + body.get(0).getY());
-            if(checkIfSameTile(body.get(0))) {
-                body.get(0).setBackground(Color.RED);
-                addBodyPart(3);
-            }else {
-                body.get(0).setBackground(Color.GREEN);
+            if(movementDirection != 4 || body.size() == 1) {
+                movementDirection =3;
             }
         }
     }
     public class RightMovement extends AbstractAction {
         @Override
         public void actionPerformed(ActionEvent e) {
-            moveSnake(4, 20);
-            System.out.println(body.get(0).getX() + " " + body.get(0).getY());
-            if(checkIfSameTile(body.get(0))) {
-                body.get(0).setBackground(Color.RED);
-                addBodyPart(4);
-            }else {
-                body.get(0).setBackground(Color.GREEN);
+            if(movementDirection != 3 || body.size() == 1) {
+                movementDirection =4;
             }
         }
     }
@@ -134,16 +136,15 @@ public class game {
         //1 = up, 2 = down, 3 = left, 4 = right
         int x = 0;
         int y = 0;
-        if(direction < 3) {
-            y = distance;
-            if(direction == 1) {
-                y = -y;
-            }
-        }
         if(direction > 2) {
             x = distance;
             if(direction == 3) {
                 x = -x;
+            }
+        } else if(direction != 0) {
+            y = distance;
+            if(direction == 1) {
+                y = -y;
             }
         }
         //this for loop moves each body part relative to where the part ahead of it (in the ArrayList) was previously, and goes all the way up to the 0th index
@@ -155,6 +156,10 @@ public class game {
             }
         }
             body.get(0).setCoordinates(x,y);
+        if(checkIfSameTile(body.get(0))) {
+            addBodyPart(direction);
+
+        }
     }
 }
 
@@ -168,9 +173,7 @@ class snakeBody extends JLabel{ //Again, each snake part is a JLabel, with coord
     public void setCoordinates(int x, int y) { //this is just for the head of the snake, to move it relative to the direction pressed
         this.setLocation(this.getX() + x, this.getY() + y);
     }
-    public void moveUp(int x, int y) { //This moves the rest of the snake body parts, honestly a little unnecessary since you can just directly do it, but I did this for sake of readability
-        this.setLocation(x,y);
-    }
 }
+
 
 
